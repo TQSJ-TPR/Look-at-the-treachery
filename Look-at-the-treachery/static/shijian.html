@@ -1,0 +1,349 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>实时SJ</title>
+  
+  <style>
+    :root { --bg: #ffffff; --card: rgba(0,0,0,0.08); --text: #1a1a1a; --muted: #666666; --accent: #3b82f6; }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; color: var(--text); background: #ffffff; overflow: auto; }
+    header { padding: 20px 24px; display:flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 10; background: rgba(255,255,255,0.7); border-bottom: 1px solid rgba(255,255,255,0.3); -webkit-backdrop-filter: blur(20px) saturate(180%); backdrop-filter: blur(20px) saturate(180%); box-shadow: 0 4px 12px rgba(0,0,0,0.05); transition: all 0.3s ease-in-out; }
+    .brand { display:flex; align-items:center; gap:12px; }
+    h1 { margin:0; font-size:1.4rem; font-weight:700; }
+    .subtitle { color: var(--muted); font-size:.9rem; }
+    main { max-width:1100px; margin:0 auto; padding:16px; display:flex; flex-direction:column; gap:20px; transition: all 0.3s ease-in-out; }
+    .card { background: rgba(255,255,255,0.6); border:1px solid rgba(255,255,255,0.4); border-radius:12px; padding:16px; box-shadow:0 4px 16px rgba(0,0,0,0.08); -webkit-backdrop-filter: blur(12px) saturate(150%); backdrop-filter: blur(12px) saturate(150%); }
+    .section-title { font-weight:700; font-size:1.05em; color:var(--text); margin-bottom:8px; }
+    #output { min-height:140px; font-family: ui-monospace,SFMono-Regular,Monaco,Consolas,"Liberation Mono"; padding:16px; border-radius:12px; border:1px solid rgba(255,255,255,0.4); background: rgba(255,255,255,0.5); font-size:0.95em; line-height:1.4; display: flex; flex-direction: column; gap: 12px; justify-content: center; -webkit-backdrop-filter: blur(12px) saturate(150%); backdrop-filter: blur(12px) saturate(150%); }
+    .data-box { background: rgba(255,255,255,0.7); border: 1px solid rgba(255,255,255,0.5); border-radius: 8px; padding: 16px 20px; font-size: 1.1em; text-align: center; -webkit-backdrop-filter: blur(8px) saturate(150%); backdrop-filter: blur(8px) saturate(150%); box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+    .data-label { color: var(--muted); font-size: 1.2em; margin-bottom: 6px; }
+    .data-value { color: var(--text); font-weight: 600; font-size: 1.3em; }
+    #heart-rate-embed { position: fixed; bottom: 0; left: 0; width: 100%; height: 60px; background: rgba(255, 255, 255, 0.7); border-top: 1px solid rgba(255,255,255,0.3); z-index: 1000; display: flex; justify-content: center; align-items: center; overflow: hidden; -webkit-backdrop-filter: blur(20px) saturate(180%); backdrop-filter: blur(20px) saturate(180%); box-shadow: 0 -4px 12px rgba(0,0,0,0.05); transition: all 0.3s ease-in-out; }
+    #heart-rate-embed iframe { width: 800%; height: 1000%; border: 0; transform: scale(0.1); transform-origin: center center;margin-bottom: 5px;margin-left: 80px; }
+    .subtext_left { position: absolute; left:  10px; font-size: 0.75rem; color: var(--muted); }
+    .subtext_right { position: absolute; right: 10px; font-size: 0.75rem; color: var(--muted); }
+    @media (max-width: 768px) {
+      header { padding: 12px 16px; }
+      h1 { font-size: 1.2rem; }
+      .subtitle { font-size: 0.8rem; }
+      main { padding: 8px; gap: 12px; }
+      .card { padding: 12px; border-radius: 8px; }
+      #output { min-height: 100px; padding: 12px; }
+      .data-box { padding: 10px 12px; margin: 2px 0; }
+      .data-value { font-size: 1em; }
+      
+      #heart-rate-embed {
+        height: 50px;
+        background: rgba(255, 255, 255, 0.7);
+        border-top: 1px solid rgba(255,255,255,0.3);
+      }
+      #heart-rate-embed iframe {
+        transform: scale(0.4);
+        margin-top: 155px;
+        margin-left: 30px;
+      }
+      
+      /* Mobile button positioning */
+      div[style*="position: fixed; top: 20px; right: 20px"] {
+        top: 10px !important;
+        right: 10px !important;
+        gap: 6px !important;
+      }
+      
+      div[style*="position: fixed; top: 20px; right: 20px"] button {
+        padding: 6px 12px !important;
+        font-size: 0.8rem !important;
+        border-radius: 6px !important;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      .brand { gap: 8px; }
+      h1 { font-size: 1.1rem; }
+      .subtitle { font-size: 0.75rem; }
+      #heart-rate-embed {
+        height: 50px;
+      }
+      #heart-rate-embed iframe {
+        transform: scale(0.4);
+        margin-top: 155px;
+        margin-left: 30px;
+      }
+      
+      /* Extra small screen adjustments */
+      div[style*="position: fixed; top: 20px; right: 20px"] {
+        top: 8px !important;
+        right: 8px !important;
+      }
+      
+      div[style*="position: fixed; top: 20px; right: 20px"] button {
+        padding: 5px 10px !important;
+        font-size: 0.75rem !important;
+      }
+    }
+    body {
+      margin: 0;
+      padding: 0;
+      background-image: url('https://t.alcy.cc/ycy');
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      min-height: 100vh;
+      background-color: #f0f0f0; /* 备用背景色 */
+    }
+  </style>
+</head>
+<body>
+  <div style="position: fixed; top: 20px; right: 20px; z-index: 1001; display: flex; flex-direction: column; gap: 8px;">
+    <button id="toggleUI" onclick="toggleUI()" style="background: rgba(255,255,255,0.3); border: 1px solid rgba(255,255,255,0.4); color: var(--text); padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 0.9rem; -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); transition: all 0.3s ease;">隐藏UI</button>
+    <button id="refreshBg" onclick="refreshBackground()" style="background: rgba(255,255,255,0.3); border: 1px solid rgba(255,255,255,0.4); color: var(--text); padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 0.9rem; -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); transition: all 0.3s ease;">刷新页面</button>
+  </div>
+  
+  <header id="main-header">
+    <div class="brand">
+      <div>
+        <h1>实时SJ</h1>
+        <div class="subtitle">Ciallo～(∠・ω< )⌒★</div>
+        <div class="subtitle">底栏为实时心率</div>
+        <div class="subtitle">不显示应该是似了罢</div>
+      </div>
+    </div>
+  </header>
+  <main>
+    <section class="card" aria-label="实时状态">
+      <div class="section-title">实时状态</div>
+      <div id="output" class="output">等待数据...</div>
+    </section>
+  </main>
+  
+  <div id="heart-rate-embed">
+    <div class="subtext_left">80以下睡着或躺着</div>
+    <iframe id="heartRateFrame" src="https://pulsoid.net/widget/view/db7e16ab-aff5-4ed7-9ec4-c012dea664f7" title="Pulse Widget" width="100%" height="100%" frameborder="0"></iframe>
+    <div class="subtext_right">75以下基本睡着</div>
+  </div>
+  
+  <script>
+    let uiHidden = false;
+    
+    function toggleUI() {
+      const header = document.getElementById('main-header');
+      const main = document.querySelector('main');
+      const heartRate = document.getElementById('heart-rate-embed');
+      const button = document.getElementById('toggleUI');
+      
+      if (uiHidden) {
+        // Show UI with fade-in effect
+        header.style.opacity = '0';
+        header.style.transform = 'translateY(-100%)';
+        header.style.display = 'flex';
+        main.style.opacity = '0';
+        main.style.display = 'flex';
+        heartRate.style.opacity = '0';
+        heartRate.style.transform = 'translateY(100%)';
+        heartRate.style.display = 'flex';
+        
+        setTimeout(() => {
+          header.style.opacity = '1';
+          header.style.transform = 'translateY(0)';
+          main.style.opacity = '1';
+          heartRate.style.opacity = '1';
+          heartRate.style.transform = 'translateY(0)';
+        }, 10);
+        
+        button.textContent = '隐藏UI';
+        uiHidden = false;
+      } else {
+        // Hide UI with fade-out effect
+        header.style.opacity = '0';
+        header.style.transform = 'translateY(-100%)';
+        main.style.opacity = '0';
+        heartRate.style.opacity = '0';
+        heartRate.style.transform = 'translateY(100%)';
+        
+        setTimeout(() => {
+          header.style.display = 'none';
+          main.style.display = 'none';
+          heartRate.style.display = 'none';
+        }, 300);
+        
+        button.textContent = '显示UI';
+        uiHidden = true;
+      }
+    }
+    
+    // Add keyboard shortcut (Space key) to toggle UI
+    document.addEventListener('keydown', function(e) {
+      if (e.code === 'Space' && !e.target.matches('input, textarea')) {
+        e.preventDefault();
+        toggleUI();
+      }
+    });
+    
+    function refreshBackground() {
+      // Save UI state to localStorage
+      localStorage.setItem('uiHidden', uiHidden.toString());
+      
+      // Reload the page
+      window.location.reload();
+    }
+    
+    // Restore UI state on page load
+    window.addEventListener('load', function() {
+      const savedState = localStorage.getItem('uiHidden');
+      if (savedState === 'true' && !uiHidden) {
+        // UI was hidden, hide it now
+        toggleUI();
+      } else if (savedState === 'false' && uiHidden) {
+        // UI was shown, show it now
+        toggleUI();
+      }
+      
+      // Clean up the saved state
+      localStorage.removeItem('uiHidden');
+    });
+    
+    function updateHeartRateWidget() {
+      const frame = document.getElementById('heartRateFrame');
+      const isMobile = window.innerWidth <= 768;
+      if (isMobile) {
+        frame.src = 'https://pulsoid.net/widget/view/db7e16ab-aff5-4ed7-9ec4-c012dea664f7?mode=compact&size=small';
+      } else {
+        frame.src = 'https://pulsoid.net/widget/view/db7e16ab-aff5-4ed7-9ec4-c012dea664f7';
+      }
+    }
+    updateHeartRateWidget();
+    window.addEventListener('resize', updateHeartRateWidget);
+    function formatUptime(seconds) {
+      if (!seconds || seconds < 0) return '未知';
+      const days = Math.floor(seconds / 86400);
+      const hours = Math.floor((seconds % 86400) / 3600);
+      const minutes = Math.floor((seconds % 3600) / 60);
+      if (days > 0) {
+        return `${days}天 ${hours}小时 ${minutes}分钟`;
+      } else if (hours > 0) {
+        return `${hours}小时 ${minutes}分钟`;
+      } else {
+        return `${minutes}分钟`;
+      }
+    }
+    
+    function formatActiveDuration(seconds) {
+      if (!seconds || seconds < 0) return '刚刚打开';
+      if (seconds < 60) {
+        return `${Math.floor(seconds)}秒`;
+      } else if (seconds < 3600) {
+        return `${Math.floor(seconds / 60)}分钟`;
+      } else {
+        const hours = Math.floor(seconds / 3600);
+        const minutes = Math.floor((seconds % 3600) / 60);
+        return `${hours}小时 ${minutes}分钟`;
+      }
+    }
+    const output = document.getElementById('output');
+    const evtSource = new EventSource('/stream');
+    
+    function updateRealtimeDisplay(systemData, songData) {
+      const uptime = formatUptime(systemData.boot_time);
+      const activeDuration = formatActiveDuration(systemData.active_duration);
+      let songHtml = '';
+      
+      if (songData && songData.status === 'playing' && songData.title) {
+        songHtml = `
+          <div class="data-box">
+            <div class="data-label">🎵 歌曲</div>
+            <div class="data-value">${songData.title}</div>
+            ${songData.artist ? `<div style="color: var(--muted); font-size: 0.9em; margin-top: 4px;">${songData.artist}</div>` : ''}
+          </div>
+        `;
+      } else if (songData && songData.status === 'paused' && songData.title) {
+        songHtml = `
+          <div class="data-box">
+            <div class="data-label">⏸️ 暂停</div>
+            <div class="data-value">${songData.title}</div>
+            ${songData.artist ? `<div style="color: var(--muted); font-size: 0.9em; margin-top: 4px;">${songData.artist}</div>` : ''}
+          </div>
+        `;
+      } else {
+        songHtml = `
+          <div class="data-box">
+            <div class="data-label">🎵 歌曲</div>
+            <div class="data-value">未在播放</div>
+          </div>
+        `;
+      }
+      
+      const isMoyu = systemData.title === '摸鱼～～～';
+      const durationText = isMoyu ? `正在摸鱼: ${activeDuration}` : `已打开: ${activeDuration}`;
+      
+      output.innerHTML = `
+        <div class="data-box">
+          <div class="data-label">当前窗口</div>
+          <div class="data-value">${systemData.title}</div>
+          <div style="color: var(--muted); font-size: 0.9em; margin-top: 4px;">${durationText}</div>
+        </div>
+        
+        <div class="data-box">
+          <div class="data-label">电脑运行时长</div>
+          <div class="data-value">${uptime}</div>
+        </div>
+        ${songHtml}
+      `;
+    }
+    
+    let systemDataCache = null;
+    let songDataCache = null;
+    
+    evtSource.onmessage = function(event) {
+      try {
+        systemDataCache = JSON.parse(event.data);
+        if (songDataCache !== null) {
+          updateRealtimeDisplay(systemDataCache, songDataCache);
+        }
+      } catch (e) {
+        output.textContent = event.data;
+      }
+    };
+    evtSource.onerror = function() {
+      output.innerHTML = '<div class="data-box"><div class="data-value">连接中断，正在重试...</div></div>';
+    };
+
+    const songSource = new EventSource('/song/stream');
+    
+    songSource.onmessage = function(event) {
+      try {
+        songDataCache = JSON.parse(event.data);
+        if (systemDataCache !== null) {
+          updateRealtimeDisplay(systemDataCache, songDataCache);
+        }
+      } catch (e) {
+        console.error('歌曲数据解析错误:', e);
+      }
+    };
+    
+    songSource.onerror = function() {
+      songDataCache = { status: 'error' };
+      if (systemDataCache !== null) {
+        updateRealtimeDisplay(systemDataCache, songDataCache);
+      }
+    };
+
+    fetch('/song')
+      .then(response => response.json())
+      .then(data => {
+        songDataCache = data;
+        if (systemDataCache !== null) {
+          updateRealtimeDisplay(systemDataCache, songDataCache);
+        }
+      })
+      .catch(error => {
+        console.error('获取歌曲信息失败:', error);
+        songDataCache = { status: 'error' };
+        if (systemDataCache !== null) {
+          updateRealtimeDisplay(systemDataCache, songDataCache);
+        }
+      });
+  </script>
+</body>
+</html>
